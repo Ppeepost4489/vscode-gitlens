@@ -188,7 +188,17 @@ import { countStringLength, filterMap } from '../../../system/array';
 import { gate } from '../../../system/decorators/gate';
 import { debug, log } from '../../../system/decorators/log';
 import { debounce } from '../../../system/function';
-import { filterMap as filterMapIterable, find, first, join, last, map, skip, some } from '../../../system/iterable';
+import {
+	filterMap as filterMapIterable,
+	find,
+	first,
+	groupByMap,
+	join,
+	last,
+	map,
+	skip,
+	some,
+} from '../../../system/iterable';
 import { Logger } from '../../../system/logger';
 import type { LogScope } from '../../../system/logger.scope';
 import { getLogScope, setLogScopeExit } from '../../../system/logger.scope';
@@ -1262,6 +1272,57 @@ export class LocalGitProvider implements GitProvider, Disposable {
 	@log()
 	async renameBranch(repoPath: string, oldName: string, newName: string): Promise<void> {
 		await this.git.branch(repoPath, '-m', oldName, newName);
+	}
+
+	@log()
+	async deleteBranch(
+		repoPath: string,
+		branches: GitBranchReference[],
+		options: { force?: boolean; remote?: boolean },
+	): Promise<void> {
+		const localBranches = branches.filter((b: GitBranchReference) => !b.remote);
+		if (localBranches.length !== 0) {
+			const args = ['--delete'];
+			if (options.force) {
+				args.push('--force');
+			}
+
+			await this.git.branch(repoPath, ...args, ...branches.map((b: GitBranchReference) => b.ref));
+
+			if (options.remote) {
+				const trackingBranches = localBranches.filter(b => b.upstream != null);
+				if (trackingBranches.length !== 0) {
+					const branchesByOrigin = groupByMap(trackingBranches, b =>
+						getRemoteNameFromBranchName(b.upstream!.name),
+					);
+
+					for (const [remote, branches] of branchesByOrigin.entries()) {
+						await this.git.push(repoPath, {
+							delete: {
+								remote: remote,
+								branches: branches.map(b => getBranchNameWithoutRemote(b.upstream!.name)),
+							},
+						});
+					}
+				}
+			}
+		}
+
+		const remoteBranches = branches.filter((b: GitBranchReference) => b.remote);
+		if (remoteBranches.length !== 0) {
+			const branchesByOrigin = groupByMap(remoteBranches, b => getRemoteNameFromBranchName(b.name));
+
+			for (const [remote, branches] of branchesByOrigin.entries()) {
+				await this.git.push(repoPath, {
+					delete: {
+						remote: remote,
+						branches: branches.map((b: GitBranchReference) =>
+							b.remote ? getBranchNameWithoutRemote(b.name) : b.name,
+						),
+					},
+				});
+			}
+		}
 	}
 
 	@log()
