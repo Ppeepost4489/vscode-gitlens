@@ -1275,7 +1275,7 @@ export class LocalGitProvider implements GitProvider, Disposable {
 	}
 
 	@log()
-	async deleteBranch(
+	async deleteBranches(
 		repoPath: string,
 		branches: GitBranchReference[],
 		options: { force?: boolean; remote?: boolean },
@@ -1308,7 +1308,6 @@ export class LocalGitProvider implements GitProvider, Disposable {
 			}
 		}
 
-		const remoteBranches = branches.filter((b: GitBranchReference) => b.remote);
 		if (remoteBranches.length !== 0) {
 			const branchesByOrigin = groupByMap(remoteBranches, b => getRemoteNameFromBranchName(b.name));
 
