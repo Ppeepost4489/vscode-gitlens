@@ -20,6 +20,8 @@ import {
 	PullErrorReason,
 	PushError,
 	PushErrorReason,
+	ResetError,
+	ResetErrorReason,
 	StashPushError,
 	StashPushErrorReason,
 	TagError,
@@ -105,6 +107,11 @@ export const GitErrors = {
 	tagNotFound: /tag .* not found/i,
 	invalidTagName: /invalid tag name/i,
 	remoteRejected: /rejected because the remote contains work/i,
+	unmergedChanges: /error:\s*you need to resolve your current index first/i,
+	ambiguousArgument: /fatal:\s*ambiguous argument ['"].+['"]: unknown revision or path not in the working tree/i,
+	entryNotUpToDate: /error:\s*Entry ['"].+['"] not uptodate\. Cannot merge\./i,
+	changesWouldBeOverwritten: /error:\s*Your local changes to the following files would be overwritten/i,
+	refLocked: /fatal:\s*cannot lock ref ['"].+['"]: unable to create file/i,
 };
 
 const GitWarnings = {
@@ -171,6 +178,14 @@ const tagErrorAndReason: [RegExp, TagErrorReason][] = [
 	[GitErrors.invalidTagName, TagErrorReason.InvalidTagName],
 	[GitErrors.permissionDenied, TagErrorReason.PermissionDenied],
 	[GitErrors.remoteRejected, TagErrorReason.RemoteRejected],
+];
+
+const resetErrorAndReason = [
+	[unmergedChanges, ResetErrorReason.UnmergedChanges],
+	[ambiguousArgument, ResetErrorReason.AmbiguousArgument],
+	[entryNotUpToDate, ResetErrorReason.EntryNotUpToDate],
+	[changesWouldBeOverwritten, ResetErrorReason.LocalChangesWouldBeOverwritten],
+	[refLocked, ResetErrorReason.RefLocked],
 ];
 
 export class Git {
@@ -1584,8 +1599,19 @@ export class Git {
 		return this.git<string>({ cwd: repoPath }, 'remote', 'get-url', remote);
 	}
 
-	reset(repoPath: string | undefined, pathspecs: string[]) {
-		return this.git<string>({ cwd: repoPath }, 'reset', '-q', '--', ...pathspecs);
+	reset(repoPath: string, pathspecs: string[], ...args: string[]) {
+		try {
+			return this.git<string>({ cwd: repoPath }, 'reset', '-q', ...args, '--', ...pathspecs);
+		} catch (ex) {
+			const msg: string = ex?.toString() ?? '';
+			for (const [error, reason] of resetErrorAndReason) {
+				if (error.test(msg)) {
+					throw new ResetError(reason, ex);
+				}
+			}
+
+			throw new ResetError(ResetErrorReason.Other, ex);
+		}
 	}
 
 	async rev_list(
