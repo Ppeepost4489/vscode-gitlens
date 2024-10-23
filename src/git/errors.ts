@@ -572,7 +572,6 @@ export const enum ResetErrorReason {
 	UnmergedChanges,
 	AmbiguousArgument,
 	EntryNotUpToDate,
-	LocalChangesWouldBeOverwritten,
 	RefLocked,
 	Other,
 }
@@ -606,9 +605,6 @@ export class ResetError extends Error {
 					break;
 				case ResetErrorReason.EntryNotUpToDate:
 					message = `${message} because the entry is not up to date`;
-					break;
-				case ResetErrorReason.LocalChangesWouldBeOverwritten:
-					message = `${message} because local changes would be overwritten`;
 					break;
 				case ResetErrorReason.RefLocked:
 					message = `${message} because the ref is locked`;
