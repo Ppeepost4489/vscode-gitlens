@@ -80,7 +80,7 @@ export const GitErrors = {
 	ambiguousArgument: /fatal:\s*ambiguous argument ['"].+['"]: unknown revision or path not in the working tree/i,
 	badRevision: /bad revision '(.*?)'/i,
 	cantLockRef: /cannot lock ref|unable to update local ref/i,
-	changesWouldBeOverwritten: /error:\s*Your local changes to the following files would be overwritten/i,
+	changesWouldBeOverwritten: /Your local changes to the following files would be overwritten/i,
 	commitChangesFirst: /Please, commit your changes before you can/i,
 	conflict: /^CONFLICT \([^)]+\): \b/m,
 	entryNotUpToDate: /error:\s*Entry ['"].+['"] not uptodate\. Cannot merge\./i,
