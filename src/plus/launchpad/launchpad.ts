@@ -518,22 +518,6 @@ export class LaunchpadCommand extends QuickCommand<State> {
 			};
 		}
 
-		const combineQuickpickItemsWithSearchResults = <T extends { item: { id: string } } | object>(
-			arr: readonly T[],
-			items: T[],
-		) => {
-			const ids: Set<string> = new Set(
-				arr.map(i => 'item' in i && i.item?.id).filter(id => typeof id === 'string'),
-			);
-			const result = [...arr];
-			for (const item of items) {
-				if ('item' in item && item.item?.id && !ids.has(item.item.id)) {
-					result.push(item);
-				}
-			}
-			return result;
-		};
-
 		const updateItems = async (
 			quickpick: QuickPick<LaunchpadItemQuickPickItem | DirectiveQuickPickItem | ConnectMoreIntegrationsItem>,
 		) => {
@@ -552,7 +536,7 @@ export class LaunchpadCommand extends QuickCommand<State> {
 					}
 					const { items, placeholder } = getItemsAndPlaceholder(Boolean(search));
 					quickpick.placeholder = placeholder;
-					quickpick.items = search ? combineQuickpickItemsWithSearchResults(quickpick.items, items) : items;
+					quickpick.items = items;
 				});
 			} finally {
 				quickpick.busy = false;
@@ -628,6 +612,15 @@ export class LaunchpadCommand extends QuickCommand<State> {
 						this.updateItemsDebouncer.cancel();
 						return true;
 					}
+				}
+
+				// wait a little bit because the active quickpick is updated with some delay
+				await new Promise(resolve => setTimeout(resolve, 100));
+				const hasActiveLaunchpadItems = quickpick.activeItems.find(i => 'item' in i);
+				if (hasActiveLaunchpadItems) {
+					// We have an active item, so we can exit now without sending any requests to API
+					this.updateItemsDebouncer.cancel();
+					return true;
 				}
 
 				await updateItems(quickpick);
