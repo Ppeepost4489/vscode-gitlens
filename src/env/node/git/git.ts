@@ -1603,7 +1603,7 @@ export class Git {
 		} catch (ex) {
 			const msg: string = ex?.toString() ?? '';
 			for (const [error, reason] of resetErrorAndReason) {
-				if (error.test(msg)) {
+				if (error.test(msg) || error.test(ex.stderr ?? '')) {
 					throw new ResetError(reason, ex);
 				}
 			}
