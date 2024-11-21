@@ -4,8 +4,10 @@ import type { GitLog } from '../../git/models/log';
 import type { GitRevisionReference } from '../../git/models/reference';
 import { getReferenceLabel } from '../../git/models/reference';
 import type { Repository } from '../../git/models/repository';
+import { showGenericErrorMessage } from '../../messages';
 import type { FlagsQuickPickItem } from '../../quickpicks/items/flags';
 import { createFlagsQuickPickItem } from '../../quickpicks/items/flags';
+import { Logger } from '../../system/logger';
 import type { ViewsWithRepositoryFolders } from '../../views/viewBase';
 import type {
 	PartialStepState,
@@ -71,8 +73,16 @@ export class RevertGitCommand extends QuickCommand<State> {
 		return false;
 	}
 
-	execute(state: RevertStepState<State<GitRevisionReference[]>>) {
-		state.repo.revert(...state.flags, ...state.references.map(c => c.ref).reverse());
+	async execute(state: RevertStepState<State<GitRevisionReference[]>>) {
+		const references = state.references.map(c => c.ref).reverse();
+		for (const ref of references) {
+			try {
+				await state.repo.git.revert(ref, state.flags);
+			} catch (ex) {
+				Logger.error(ex, this.title);
+				void showGenericErrorMessage(ex.message);
+			}
+		}
 	}
 
 	protected async *steps(state: PartialStepState<State>): StepGenerator {
@@ -160,7 +170,7 @@ export class RevertGitCommand extends QuickCommand<State> {
 			state.flags = result;
 
 			endSteps(state);
-			this.execute(state as RevertStepState<State<GitRevisionReference[]>>);
+			await this.execute(state as RevertStepState<State<GitRevisionReference[]>>);
 		}
 
 		return state.counter < 0 ? StepResultBreak : undefined;
