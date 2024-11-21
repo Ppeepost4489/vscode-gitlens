@@ -630,6 +630,15 @@ export class LaunchpadCommand extends QuickCommand<State> {
 					}
 				}
 
+				// wait a little bit because the active quickpick is updated with some delay
+				await new Promise(resolve => setTimeout(resolve, 100));
+				const hasActiveLaunchpadItems = quickpick.activeItems.find(i => 'item' in i);
+				if (hasActiveLaunchpadItems) {
+					// We have an active item, so we can exit now without sending any requests to API
+					this.updateItemsDebouncer.cancel();
+					return true;
+				}
+
 				await updateItems(quickpick);
 				return true;
 			},

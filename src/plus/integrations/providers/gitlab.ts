@@ -250,6 +250,25 @@ abstract class GitLabIntegrationBase<
 		return Promise.resolve(undefined);
 	}
 
+	protected override async searchProviderPullRequests(
+		{ accessToken }: AuthenticationSession,
+		searchQuery: string,
+		repos?: GitLabRepositoryDescriptor[],
+		cancellation?: CancellationToken,
+	): Promise<PullRequest[] | undefined> {
+		return [];
+		// return (await this.container.gitlab)?.searchPullRequests(
+		// 	this,
+		// 	accessToken,
+		// 	{
+		// 		search: searchQuery,
+		// 		repos: repos?.map(r => `${r.owner}/${r.name}`),
+		// 		baseUrl: this.apiBaseUrl,
+		// 	},
+		// 	cancellation,
+		// );
+	}
+
 	protected override async mergeProviderPullRequest(
 		_session: AuthenticationSession,
 		pr: PullRequest,
